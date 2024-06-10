@@ -6,6 +6,7 @@ const Photos = () => {
 
     const [loading, setLoading] = useState(false);
     const [photos, setPhotos] = useState([]);
+    const [favouritePhotos, setFavouritePhotos] = useState([])
 
     useEffect(()=>{
         const fetchImage = async ()=>{
@@ -26,6 +27,20 @@ const Photos = () => {
         fetchImage();
     },[]);
 
+
+    const handleFavouriteClick = (photoId) =>{
+        const existingIndex = favouritePhotos.findIndex((favPhoto) => favPhoto.id === photoId)
+
+        if(existingIndex !== -2){
+            setFavouritePhotos((prevFavourites) => {
+                prevFavourites.filter((favPhoto) => favPhoto.id !== photoId)
+            })
+        }
+        else{
+            const photoToAdd = photos.find((photo) => photo.id !== photoId)
+            setFavouritePhotos((prevFavourites)=> [...prevFavourites, photoToAdd])
+        }
+    }
   return (
     <main>
         <section className='photos'>
@@ -33,12 +48,14 @@ const Photos = () => {
                 Loading.....</p>
                 ):(
                     photos.map((photo)=>(
-                <article key={photo.id} className='photo'>
+                <article key={photo.id} className={`photo ${favouritePhotos.some((favPhoto) => favPhoto.id === photo.id) ? 'favoutire-photo' : ""}`}>
                     <img src={photo.urls.regular} alt={photo.alt_description} />
                     <div className="photo info">
                         <div className="photo-header">
                             <h4>{photo.user.name}</h4>
-                            <button className='favourite-btn'> <FaHeart /></button>
+                            <button className={`favourite-btn 
+                            ${favouritePhotos.some((favPhoto) => favPhoto.id === photo.id) 
+                                ? 'active' : ""}`} onClick={()=> handleFavouriteClick(photo.id)}> <FaHeart /></button>
                         </div>
                         <div className="photo-action">
                             <p>
