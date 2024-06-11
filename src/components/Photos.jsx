@@ -1,83 +1,87 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
-import {FaHeart, FaDownload, FaShare} from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaHeart, FaShare, FaDownload } from 'react-icons/fa';
 
-const Photos = () => {
+const Photos = ({
+  id,
+  urls: { regular, full },
+  alt_description,
+  likes,
+  user: { name, portfolio_url, profile_image: { medium } },
+  onFavoriteClick,
+  isFavorite,
+}) => {
+  const [isPhotoFavorite, setIsPhotoFavorite] = useState(isFavorite);
 
-    const [loading, setLoading] = useState(false);
-    const [photos, setPhotos] = useState([]);
-    const [favouritePhotos, setFavouritePhotos] = useState([])
+  useEffect(() => {
+    console.log("Photo component props:", {
+      id,
+      regular,
+      full,
+      alt_description,
+      likes,
+      name,
+      portfolio_url,
+      medium,
+      isFavorite
+    });
+  }, [id, regular, full, alt_description, likes, name, portfolio_url, medium, isFavorite]);
 
-    useEffect(()=>{
-        const fetchImage = async ()=>{
-            setLoading(true);
-            const clientID= '?client_id=JhyJwBR1kF1u34YmgH2HGdxowgmMXOSeq1m3WpP6nOA';
-            const mainUrl = 'https://api.unsplash.com/photos/';
-            try {
-                const response = await fetch (`${mainUrl}${clientID}`)
-                const data =  await response.json();
-                setPhotos(data)
-                setLoading(false)
-            }
-            catch(error){
-                setLoading(false);
-                console.log(error);
-            }
-        };
-        fetchImage();
-    },[]);
+  const handleFavoriteClick = () => {
+    setIsPhotoFavorite(!isPhotoFavorite);
+    onFavoriteClick({
+      id,
+      urls: { regular, full },
+      alt_description,
+      likes,
+      user: { name, portfolio_url, profile_image: { medium } },
+    });
+  };
 
+  const handleShare = () => {
+    const shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(
+      `Check out this awesome photo: ${regular}`
+    )}`;
+    window.open(shareUrl, '_blank');
+  };
 
-    const handleFavouriteClick = (photoId) =>{
-        const existingIndex = favouritePhotos.findIndex((favPhoto) => favPhoto.id === photoId)
+  const handleDownload = () => {
+    const link = document.createElement('a');
+    link.href = full;
+    link.download = `photo_${id}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
-        if(existingIndex !== -2){
-            setFavouritePhotos((prevFavourites) => {
-                prevFavourites.filter((favPhoto) => favPhoto.id !== photoId)
-            })
-        }
-        else{
-            const photoToAdd = photos.find((photo) => photo.id !== photoId)
-            setFavouritePhotos((prevFavourites)=> [...prevFavourites, photoToAdd])
-        }
-    }
   return (
-    <main>
-        <section className='photos'>
-            {loading ? (<p>
-                Loading.....</p>
-                ):(
-                    photos.map((photo)=>(
-                <article key={photo.id} className={`photo ${favouritePhotos.some((favPhoto) => favPhoto.id === photo.id) ? 'favoutire-photo' : ""}`}>
-                    <img src={photo.urls.regular} alt={photo.alt_description} />
-                    <div className="photo info">
-                        <div className="photo-header">
-                            <h4>{photo.user.name}</h4>
-                            <button className={`favourite-btn 
-                            ${favouritePhotos.some((favPhoto) => favPhoto.id === photo.id) 
-                                ? 'active' : ""}`} onClick={()=> handleFavouriteClick(photo.id)}> <FaHeart /></button>
-                        </div>
-                        <div className="photo-action">
-                            <p>
-                                <FaHeart className='heart-icon' />{photo.likes}
-                            </p>
-                            <button className='share-btn'>
-                                <FaShare />
-                            </button>
-                            <button className="download-btn">
-                                <FaDownload />
-                            </button>
-                        </div>
-                        <a href={photo.user.portfolio_url}>
-                            <img src={photo.user.profile_image.medium} className='user-img' alt={photo.user.name} />
-                        </a>
-                    </div>
-                </article>
-  ))
-  )}
-        </section>
-    </main>
-  )
-}
+    <article className="photo">
+      <img src={regular} alt={alt_description} />
+      <div className="photo-info">
+        <div className="photo-header">
+          <h4>{name}</h4>
+          <button className={`favorite-btn ${isPhotoFavorite ? 'active' : ''}`} onClick={handleFavoriteClick}>
+            <span role="img" aria-label="Favorite">
+              {isPhotoFavorite ? '❤️' : '♡'}
+            </span>
+          </button>
+        </div>
+        <div className="photo-actions">
+          <p>
+            <FaHeart className="heart-icon" /> {likes}
+          </p>
+          <button className="share-btn" onClick={handleShare}>
+            <FaShare className="share-icon" />
+          </button>
+          <button className="download-btn" onClick={handleDownload}>
+            <FaDownload className="download-icon" />
+          </button>
+        </div>
+        <a href={portfolio_url}>
+          <img src={medium} className="user-img" alt={name} />
+        </a>
+      </div>
+    </article>
+  );
+};
 
-export default Photos
+export default Photos;

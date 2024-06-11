@@ -1,40 +1,155 @@
-import React from 'react';
-import {BrowserRouter, Routes, Route, Link} from 'react-router-dom';
-import Photos from './components/Photos';
-import Favourites from './components/Favourites';
+import React, { useState, useEffect } from 'react';
 import { FaSearch } from 'react-icons/fa';
+import Photos from './components/Photos';
+import Favourite from './components/Favourite';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 
-
+const clientID = `?client_id=JhyJwBR1kF1u34YmgH2HGdxowgmMXOSeq1m3WpP6nOA`;
+const mainUrl = `https://api.unsplash.com/photos/`;
+const searchUrl = `https://api.unsplash.com/search/photos/`;
 
 function App() {
+  const [loading, setLoading] = useState(false);
+  const [photos, setPhotos] = useState([]);
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
+
+  const [favoritePhotos, setFavoritePhotos] = useState([]);
+
+  const fetchImages = async () => {
+    setLoading(true);
+    let url;
+    const urlPage = `&page=${page}`;
+    const urlQuery = `&query=${query}`;
+
+    if (query) {
+      url = `${searchUrl}${clientID}${urlPage}${urlQuery}`;
+    } else {
+      url = `${mainUrl}${clientID}${urlPage}`;
+    }
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      setPhotos((oldPhoto) => {
+        if (query && page === 1) {
+          return data.results;
+        } else if (query) {
+          return [...oldPhoto, ...data.results];
+        } else {
+          return [...oldPhoto, ...data];
+        }
+      });
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchImages();
+  }, [page]);
+
+  useEffect(() => {
+    const event = window.addEventListener('scroll', () => {
+      if (
+        !loading &&
+        window.innerHeight + window.scrollY >= document.body.scrollHeight - 2
+      ) {
+        setPage((oldPage) => {
+          return oldPage + 1;
+        });
+      }
+    });
+    return () => window.removeEventListener('scroll', event);
+  }, [loading]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setPage(1);
+    fetchImages();
+  };
+
+  const handleFavoriteClick = (photo) => {
+    const existingIndex = favoritePhotos.findIndex(
+      (favPhoto) => favPhoto.id === photo.id
+    );
+
+    if (existingIndex !== -1) {
+      // If the photo is already in favorites, remove it
+      setFavoritePhotos((prevFavorites) =>
+        prevFavorites.filter((favPhoto) => favPhoto.id !== photo.id)
+      );
+    } else {
+      // If the photo is not in favorites, add it
+      setFavoritePhotos((prevFavorites) => [...prevFavorites, photo]);
+    }
+  };
 
   return (
-    <>
-      <BrowserRouter>
-        <div>
-          <nav className="navbar">
-            <div className="navbar_logo">   
-              FOTOFLIX
-            </div>
-            <form action='' className='navbar_search-form'>
-              <input type='text' className='form-input' placeholder='search'/>
-              <button type='submit' className='submit-btn'>
-                <FaSearch />
-              </button>
-            </form>
-            <div className="navbar_links">
-              <Link to="/">Home</Link>
-              <Link to="/Favourites">Favourites</Link>
-            </div>
-          </nav>
-          <Routes>
-            <Route path='/' element={<Photos />}/>
-            <Route path='/Favourites' element={<Favourites />} />
-          </Routes>
-        </div>
-      </BrowserRouter>
-    </>
-  )
+    <Router>
+      <div>
+        {/* Sticky Navbar */}
+        <nav className="navbar">
+          <div className="navbar__logo">AkashLens</div>
+          <form action="" className="navbar__search-form" onSubmit={handleSubmit}>
+            <input
+              type="text"
+              placeholder="search"
+              className="form-input"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <button type="submit" className="submit-btn">
+              <FaSearch />
+            </button>
+          </form>
+          <div className="navbar__links">
+            <Link to="/favourites">Favourites</Link>
+          </div>
+        </nav>
+
+        {/* Router Switch */}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <main>
+                <section className="photos">
+                  <div className="photos-center">
+                    {photos.map((image, index) => {
+                      const isFavorite = favoritePhotos.some(
+                        (favPhoto) => favPhoto.id === image.id
+                      );
+                      return (
+                        <Photos
+                          key={index}
+                          {...image}
+                          onFavoriteClick={() => handleFavoriteClick(image)}
+                          isFavorite={isFavorite}
+                        >
+                          {isFavorite ? <span>Added to Favorites</span> : null}
+                        </Photos>
+                      );
+                    })}
+                  </div>
+                </section>
+              </main>
+            }
+          />
+          <Route
+            path="/favourites"
+            element={
+              <Favourite
+                favoritePhotos={favoritePhotos}
+                handleRemoveFavorite={handleFavoriteClick}
+              />
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
+  );
 }
 
-export default App
+export default App;
